@@ -74,50 +74,7 @@ static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
 
 void Task013DPolygon::Init()
 {
-	//VERTEX_3D vertex[VERTEX_NUM];
 
-	//for (int i = 0; i < VERTEX_NUM; i++)
-	//{
-	//	vertex[i].Diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	//}
-
-	///// 上
-	//{
-	//	vertex[0].Position = D3DXVECTOR3(-10.0f, 0.0f, 10.0f);
-	//	vertex[0].TexCoord = D3DXVECTOR2(0.0f, 0.0f);
-	//	vertex[0].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-
-	//	vertex[1].Position = D3DXVECTOR3(10.0f, 0.0f, 10.0f);
-	//	vertex[1].TexCoord = D3DXVECTOR2(1.0f, 0.0f);
-	//	vertex[1].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-
-	//	vertex[2].Position = D3DXVECTOR3(-10.0f, 0.0f, -10.0f);
-	//	vertex[2].TexCoord = D3DXVECTOR2(0.0f, 1.0f);
-	//	vertex[2].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-
-	//	vertex[3].Position = D3DXVECTOR3(10.0f, 0.0f, -10.0f);
-	//	vertex[3].TexCoord = D3DXVECTOR2(1.0f, 1.0f);
-	//	vertex[3].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-	//}
-
-	///// 下
-	//{
-	//	vertex[4].Position = D3DXVECTOR3(-10.0f, -10.0f, 10.0f);
-	//	vertex[4].TexCoord = D3DXVECTOR2(0.0f, 0.0f);
-	//	vertex[4].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-
-	//	vertex[5].Position = D3DXVECTOR3(10.0f, -10.0f, 10.0f);
-	//	vertex[5].TexCoord = D3DXVECTOR2(1.0f, 0.0f);
-	//	vertex[5].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-
-	//	vertex[6].Position = D3DXVECTOR3(-10.0f, -10.0f, -10.0f);
-	//	vertex[6].TexCoord = D3DXVECTOR2(0.0f, 1.0f);
-	//	vertex[6].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-
-	//	vertex[7].Position = D3DXVECTOR3(10.0f, -10.0f, -10.0f);
-	//	vertex[7].TexCoord = D3DXVECTOR2(1.0f, 1.0f);
-	//	vertex[7].Normal = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-	//}
 
 	// 頂点バッファ生成
 	D3D11_BUFFER_DESC bd{};
