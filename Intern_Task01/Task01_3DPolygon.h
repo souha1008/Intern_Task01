@@ -1,4 +1,19 @@
 #pragma once
+//==============================================================
+// Filename: Task01_3DPolygon.h
+// Description: 3DÉ|ÉäÉSÉìï`âÊ
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
+
+
+/// èÛë‘ëJà⁄ópÅ@åªç›ïœçXíÜÇÃêF
+enum NowColor
+{
+    RED = 0,
+    GREEN,
+    BLUE
+};
+
 
 class Task013DPolygon
 {
@@ -9,15 +24,21 @@ public:
     void Draw();
 
 private:
-    D3DXVECTOR3 m_Position;
-    D3DXVECTOR3 m_Rotation;
-    D3DXVECTOR3 m_Scale;
+    D3DXVECTOR3 m_Position = {0.0f, 0.0f, 0.0f};    /// à íu
+    D3DXVECTOR3 m_Rotation = { 0.0f, 0.0f, 0.0f };  /// âÒì]
+    D3DXVECTOR3 m_Scale = { 0.0f, 0.0f, 0.0f };     /// ägëÂó¶
 
     ID3D11Buffer* m_VertexBuffer = NULL;
-    ID3D11ShaderResourceView* m_Texture = NULL;
 
-    ID3D11VertexShader* m_VertexShader;
-    ID3D11PixelShader* m_PixelShader;
-    ID3D11InputLayout* m_VertexLayout;
+    ID3D11VertexShader* m_VertexShader = NULL;
+    ID3D11PixelShader* m_PixelShader = NULL;
+    ID3D11InputLayout* m_VertexLayout = NULL;
+
+    float m_red = 0.0f;    /// ê‘
+    float m_green = 0.0f;  /// óŒ
+    float m_blue = 1.0f;   /// ê¬
+
+    NowColor m_NowColor = RED;
 };
+
 

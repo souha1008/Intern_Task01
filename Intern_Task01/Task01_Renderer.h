@@ -8,7 +8,7 @@ struct VERTEX_3D
 {
 	D3DXVECTOR3 Position;
 	D3DXVECTOR3 Normal;
-	D3DXVECTOR4 Diffuse;
+	D3DXCOLOR Diffuse;
 	D3DXVECTOR2 TexCoord;
 };
 
