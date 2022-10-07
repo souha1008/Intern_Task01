@@ -1,25 +1,20 @@
-//
-// main.cpp
-// -------------------------------
-// ウインドウ表示や中央管理
-//
-//
+//==============================================================
+// Filename: Task01_Main.cpp
+// Description: 中央管理
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
 
 #include "Task01_Main.h"
 #include "Task01_Manager.h"
 #include "Task01_Renderer.h"
 
-//
-// キャプション定義
-//
+/// キャプション定義
 const char* g_ClassName = "AppClass";
-const char* g_WindowName = "DX11ゲーム";
+const char* g_WindowName = "Silicon Studio";
 
 
 /// プロトタイプ宣言
 
-/// \param[out] hWnd	ウィンドウハンドル
-/// \param[out] uMsg	
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 

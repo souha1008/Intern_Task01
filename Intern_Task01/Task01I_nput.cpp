@@ -1,6 +1,11 @@
+//==============================================================
+// Filename: Task01_Input.cpp
+// Description: キーボード入力を受け付ける
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
 
 #include "Task01_Main.h"
-#include "Task01Input.h"
+#include "Task01_Input.h"
 
 
 BYTE Task01_Input::m_OldKeyState[256];

@@ -1,19 +1,21 @@
 #pragma once
+//==============================================================
+// Filename: Task01_Renderer.h
+// Description: 3D空間のレンダー
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
 
-//
-// Task01Renderer.h
-//
-
+/// 頂点情報
 struct VERTEX_3D
 {
-	D3DXVECTOR3 Position;
-	D3DXVECTOR3 Normal;
-	D3DXCOLOR Diffuse;
-	D3DXVECTOR2 TexCoord;
+	D3DXVECTOR3 Position;	/// 位置
+	D3DXVECTOR3 Normal;		/// 法線
+	D3DXCOLOR Diffuse;		/// 色
+	D3DXVECTOR2 TexCoord;	/// テクスチャ座標
 };
 
 
-
+/// マテリアル情報
 struct MATERIAL
 {
 	D3DXCOLOR	Ambient;
@@ -25,7 +27,7 @@ struct MATERIAL
 };
 
 
-
+/// ライト情報
 struct LIGHT
 {
 	BOOL		Enable;
@@ -40,6 +42,7 @@ struct LIGHT
 class Task01Renderer
 {
 public:
+
 	static void Init();
 	static void Uninit();
 	static void Begin();

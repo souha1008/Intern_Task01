@@ -9,19 +9,19 @@
 #include "Task01_Manager.h"
 #include "Task01_Renderer.h"
 #include "Task01_3DPolygon.h"
-#include "Task01Input.h"
+#include "Task01_Input.h"
 
 
 /// 
 /// マクロ定義
 ///
-#define	VALUE_ROTATE	(D3DX_PI * 0.006f)			// 回転量
+#define	VALUE_ROTATE	(D3DX_PI * 0.006f)			/// 回転量
 
-#define	SIZE_X			(10.0f)					// 地面のサイズ(X方向)
-#define SIZE_Y			(10.0f)					// 地面のサイズ(Y方向)
-#define	SIZE_Z			(10.0f)					// 地面のサイズ(Z方向)
+#define	SIZE_X			(10.0f)					/// 地面のサイズ(X方向)
+#define SIZE_Y			(10.0f)					/// 地面のサイズ(Y方向)
+#define	SIZE_Z			(10.0f)					/// 地面のサイズ(Z方向)
 
-#define VERTEX_NUM	36
+#define VERTEX_NUM	36							/// 頂点数
 
 /// 頂点配列
 static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
@@ -117,32 +117,24 @@ void Task013DPolygon::Uninit()
 
 void Task013DPolygon::Update()
 {
-	if (Task01_Input::GetKeyPress('W'))
+	/// 回転
 	{
-		m_Rotation.y += VALUE_ROTATE;
-	}
-	if (Task01_Input::GetKeyPress('S'))
-	{
-		m_Rotation.y -= VALUE_ROTATE;
-	}
-	if (Task01_Input::GetKeyPress('A'))
-	{
-		m_Rotation.x += VALUE_ROTATE;
-	}
-	if (Task01_Input::GetKeyPress('D'))
-	{
-		m_Rotation.x -= VALUE_ROTATE;
-	}
-
-	if (Task01_Input::GetKeyPress('1'))
-	{
-		for (int i = 0; i < VERTEX_NUM; i++)
+		if (Task01_Input::GetKeyPress('W')) /// Wキーで上
 		{
-			g_VertexArray[i].Diffuse.r = 1.0f;
-			g_VertexArray[i].Diffuse.g = 0.0f;
-			g_VertexArray[i].Diffuse.b = 0.0f;
+			m_Rotation.y += VALUE_ROTATE;
 		}
-
+		if (Task01_Input::GetKeyPress('S')) /// Sキーで下
+		{
+			m_Rotation.y -= VALUE_ROTATE;
+		}
+		if (Task01_Input::GetKeyPress('A')) /// Aキーで左
+		{
+			m_Rotation.x += VALUE_ROTATE;
+		}
+		if (Task01_Input::GetKeyPress('D')) /// Dキーで右
+		{
+			m_Rotation.x -= VALUE_ROTATE;
+		}
 	}
 
 	/// 赤色を変更

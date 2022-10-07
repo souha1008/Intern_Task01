@@ -1,8 +1,10 @@
 #pragma once
 
-//
-// main.h
-// 
+//==============================================================
+// Filename: Task01_Main.h
+// Description: 主要なヘッダーファイルやライブラリを読み込む
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
 
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>

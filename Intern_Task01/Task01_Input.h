@@ -1,5 +1,9 @@
 #pragma once
-
+//==============================================================
+// Filename: Task01_Input.h
+// Description: キーボード入力を受け付ける
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
 #define	NUM_KEY_MAX			(256)
 
 class Task01_Input

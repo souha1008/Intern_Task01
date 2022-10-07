@@ -1,4 +1,9 @@
 #pragma once
+//==============================================================
+// Filename: Task01_Camera.cpp
+// Description: 空間ビュー用カメラ
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
 
 class Task01Camera
 {

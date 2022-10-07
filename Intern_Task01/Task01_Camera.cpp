@@ -1,3 +1,9 @@
+//==============================================================
+// Filename: Task01_Camera.cpp
+// Description: 空間ビュー用カメラ
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
+
 #include "Task01_Main.h"
 #include "Task01_Manager.h"
 #include "Task01_Renderer.h"

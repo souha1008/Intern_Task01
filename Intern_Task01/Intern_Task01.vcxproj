@@ -141,7 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Task01Input.h" />
+    <ClInclude Include="Task01_Input.h" />
     <ClInclude Include="Task01_3DPolygon.h" />
     <ClInclude Include="Task01_Camera.h" />
     <ClInclude Include="Task01_Main.h" />
@@ -149,7 +149,7 @@
     <ClInclude Include="Task01_Renderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Task01Input.cpp" />
+    <ClCompile Include="Task01I_nput.cpp" />
     <ClCompile Include="Task01_3DPolygon.cpp" />
     <ClCompile Include="Task01_Camera.cpp" />
     <ClCompile Include="Task01_Main.cpp" />

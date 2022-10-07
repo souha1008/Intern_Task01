@@ -1,3 +1,9 @@
+//==============================================================
+// Filename: Task01_Renderer.cpp
+// Description: 3D‹óŠÔ‚ÌƒŒƒ“ƒ_[
+// Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
+//==============================================================
+
 #include "Task01_Main.h"
 #include "Task01_Renderer.h"
 #include <io.h>
