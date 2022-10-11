@@ -149,7 +149,7 @@
     <ClInclude Include="Task01_Renderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Task01I_nput.cpp" />
+    <ClCompile Include="Task01_Input.cpp" />
     <ClCompile Include="Task01_3DPolygon.cpp" />
     <ClCompile Include="Task01_Camera.cpp" />
     <ClCompile Include="Task01_Main.cpp" />

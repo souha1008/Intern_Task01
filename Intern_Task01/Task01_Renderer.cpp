@@ -8,6 +8,7 @@
 #include "Task01_Renderer.h"
 #include <io.h>
 
+#ifdef USE_DX11
 D3D_FEATURE_LEVEL       Task01Renderer::m_FeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
 ID3D11Device* Task01Renderer::m_Device = NULL;
@@ -26,6 +27,8 @@ ID3D11Buffer* Task01Renderer::m_LightBuffer = NULL;
 ID3D11DepthStencilState* Task01Renderer::m_DepthStateEnable = NULL;
 ID3D11DepthStencilState* Task01Renderer::m_DepthStateDisable = NULL;
 
+#endif // USE_DX11
+
 
 
 float g_red, g_green, g_blue;
@@ -36,10 +39,10 @@ float g_red, g_green, g_blue;
 
 void Task01Renderer::Init()
 {
+#ifdef USE_DX11
+
+
 	HRESULT hr = S_OK;
-
-
-
 
 	// デバイス、スワップチェーン作成
 	DXGI_SWAP_CHAIN_DESC swapChainDesc{};
@@ -67,10 +70,6 @@ void Task01Renderer::Init()
 		&m_Device,
 		&m_FeatureLevel,
 		&m_DeviceContext);
-
-
-
-
 
 
 	// レンダーターゲットビュー作成
@@ -107,9 +106,6 @@ void Task01Renderer::Init()
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
 
-
-
-
 	// ビューポート設定
 	D3D11_VIEWPORT viewport;
 	viewport.Width = (FLOAT)SCREEN_WIDTH;
@@ -119,7 +115,6 @@ void Task01Renderer::Init()
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
 	m_DeviceContext->RSSetViewports(1, &viewport);
-
 
 
 	// ラスタライザステート設定
@@ -133,8 +128,6 @@ void Task01Renderer::Init()
 	m_Device->CreateRasterizerState(&rasterizerDesc, &rs);
 
 	m_DeviceContext->RSSetState(rs);
-
-
 
 
 	// ブレンドステート設定
@@ -156,7 +149,6 @@ void Task01Renderer::Init()
 	m_DeviceContext->OMSetBlendState(blendState, blendFactor, 0xffffffff);
 
 
-
 	// デプスステンシルステート設定
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
 	depthStencilDesc.DepthEnable = TRUE;
@@ -173,8 +165,6 @@ void Task01Renderer::Init()
 	m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable, NULL);
 
 
-
-
 	// サンプラーステート設定
 	D3D11_SAMPLER_DESC samplerDesc{};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -186,7 +176,6 @@ void Task01Renderer::Init()
 	m_Device->CreateSamplerState(&samplerDesc, &samplerState);
 
 	m_DeviceContext->PSSetSamplers(0, 1, &samplerState);
-
 
 
 	// 定数バッファ生成
@@ -221,9 +210,6 @@ void Task01Renderer::Init()
 	m_DeviceContext->PSSetConstantBuffers(4, 1, &m_LightBuffer);
 
 
-
-
-
 	// ライト初期化
 	LIGHT light{};
 	light.Enable = true;
@@ -234,13 +220,13 @@ void Task01Renderer::Init()
 	SetLight(light);
 
 
-
 	// マテリアル初期化
 	MATERIAL material{};
 	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	SetMaterial(material);
 
+#endif // USE_DX11
 
 	// Color初期化
 	g_red = 0.0f;
@@ -253,6 +239,7 @@ void Task01Renderer::Init()
 
 void Task01Renderer::Uninit()
 {
+#ifdef USE_DX11
 
 	m_WorldBuffer->Release();
 	m_ViewBuffer->Release();
@@ -267,6 +254,7 @@ void Task01Renderer::Uninit()
 	m_DeviceContext->Release();
 	m_Device->Release();
 
+#endif // USE_DX11
 }
 
 
@@ -274,16 +262,24 @@ void Task01Renderer::Uninit()
 
 void Task01Renderer::Begin()
 {
+#ifdef USE_DX11
+
 	float clearColor[4] = { g_red, g_green, g_blue, 1.0f };
 	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView, clearColor);
 	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+#endif // USE_DX11
 }
 
 
 
 void Task01Renderer::End()
 {
+#ifdef USE_DX11
+
 	m_SwapChain->Present(1, 0);
+
+#endif // USE_DX11
 }
 
 void Update()
@@ -294,15 +290,20 @@ void Update()
 
 void Task01Renderer::SetDepthEnable(bool Enable)
 {
+#ifdef USE_DX11
+
 	if (Enable)
 		m_DeviceContext->OMSetDepthStencilState(m_DepthStateEnable, NULL);
 	else
 		m_DeviceContext->OMSetDepthStencilState(m_DepthStateDisable, NULL);
 
+#endif // USE_DX11
 }
 
 void Task01Renderer::SetWorldViewProjection2D()
 {
+#ifdef USE_DX11
+
 	D3DXMATRIX world;
 	D3DXMatrixIdentity(&world);
 	D3DXMatrixTranspose(&world, &world);
@@ -319,40 +320,61 @@ void Task01Renderer::SetWorldViewProjection2D()
 	D3DXMatrixTranspose(&projection, &projection);
 	m_DeviceContext->UpdateSubresource(m_ProjectionBuffer, 0, NULL, &projection, 0, 0);
 
+#endif // USE_DX11
 }
 
 
 void Task01Renderer::SetWorldMatrix(D3DXMATRIX* WorldMatrix)
 {
+#ifdef USE_DX11
+
 	D3DXMATRIX world;
 	D3DXMatrixTranspose(&world, WorldMatrix);
 	m_DeviceContext->UpdateSubresource(m_WorldBuffer, 0, NULL, &world, 0, 0);
+
+#endif // USE_DX11
 }
 
 void Task01Renderer::SetViewMatrix(D3DXMATRIX* ViewMatrix)
 {
+#ifdef USE_DX11
+
 	D3DXMATRIX view;
 	D3DXMatrixTranspose(&view, ViewMatrix);
 	m_DeviceContext->UpdateSubresource(m_ViewBuffer, 0, NULL, &view, 0, 0);
+
+#endif // USE_DX11
 }
 
 void Task01Renderer::SetProjectionMatrix(D3DXMATRIX* ProjectionMatrix)
 {
+#ifdef USE_DX11
+
 	D3DXMATRIX projection;
 	D3DXMatrixTranspose(&projection, ProjectionMatrix);
 	m_DeviceContext->UpdateSubresource(m_ProjectionBuffer, 0, NULL, &projection, 0, 0);
+
+#endif // USE_DX11
 }
 
 
 
 void Task01Renderer::SetMaterial(MATERIAL Material)
 {
+#ifdef USE_DX11
+
 	m_DeviceContext->UpdateSubresource(m_MaterialBuffer, 0, NULL, &Material, 0, 0);
+
+#endif // USE_DX11
 }
 
 void Task01Renderer::SetLight(LIGHT Light)
 {
+#ifdef USE_DX11
+
 	m_DeviceContext->UpdateSubresource(m_LightBuffer, 0, NULL, &Light, 0, 0);
+
+#endif // USE_DX11
 }
 
 
@@ -361,6 +383,7 @@ void Task01Renderer::SetLight(LIGHT Light)
 
 void Task01Renderer::CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName)
 {
+#ifdef USE_DX11
 
 	FILE* file;
 	long int fsize;
@@ -390,12 +413,16 @@ void Task01Renderer::CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D1
 		VertexLayout);
 
 	delete[] buffer;
+
+#endif // USE_DX11
 }
 
 
 
 void Task01Renderer::CreatePixelShader(ID3D11PixelShader** PixelShader, const char* FileName)
 {
+#ifdef USE_DX11
+
 	FILE* file;
 	long int fsize;
 
@@ -408,4 +435,6 @@ void Task01Renderer::CreatePixelShader(ID3D11PixelShader** PixelShader, const ch
 	m_Device->CreatePixelShader(buffer, fsize, NULL, PixelShader);
 
 	delete[] buffer;
+
+#endif // USE_DX11
 }

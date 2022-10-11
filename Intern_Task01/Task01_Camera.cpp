@@ -25,6 +25,8 @@ void Task01Camera::Update()
 
 void Task01Camera::Draw()
 {
+#ifdef USE_DX11
+
     // ビューマトリクス設定
     D3DXMATRIX viewMatrix;
     D3DXVECTOR3 upvec = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
@@ -37,4 +39,6 @@ void Task01Camera::Draw()
     D3DXMatrixPerspectiveFovLH(&projMatrix, 1.0f,
         (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
     Task01Renderer::SetProjectionMatrix(&projMatrix);
+
+#endif // USE_DX11
 }

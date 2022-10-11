@@ -12,9 +12,7 @@
 #include "Task01_Input.h"
 
 
-/// 
 /// マクロ定義
-///
 #define	VALUE_ROTATE	(D3DX_PI * 0.006f)			/// 回転量
 
 #define	SIZE_X			(10.0f)					/// 地面のサイズ(X方向)
@@ -84,6 +82,8 @@ void Task013DPolygon::Init()
 		g_VertexArray[i].Diffuse.b = 1.0f;
 	}
 
+#ifdef USE_DX11
+
 	// 頂点バッファ生成
 	D3D11_BUFFER_DESC bd{};
 	ZeroMemory(&bd, sizeof(bd));
@@ -102,6 +102,8 @@ void Task013DPolygon::Init()
 
 	Task01Renderer::CreatePixelShader(&m_PixelShader, "unlitColorPS.cso");
 
+#endif // USE_DX11
+
 	m_Position = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 	m_Rotation = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 	m_Scale = D3DXVECTOR3(0.1f, 0.1f, 0.1f);
@@ -109,10 +111,14 @@ void Task013DPolygon::Init()
 
 void Task013DPolygon::Uninit()
 {
+#ifdef USE_DX11
+
 	m_VertexBuffer->Release();
 	m_VertexLayout->Release();
 	m_VertexShader->Release();
 	m_PixelShader->Release();
+
+#endif // USE_DX11
 }
 
 void Task013DPolygon::Update()
@@ -184,6 +190,8 @@ void Task013DPolygon::Update()
 			g_VertexArray[i].Diffuse.g = m_green;
 			g_VertexArray[i].Diffuse.b = m_blue;
 		}
+#ifdef USE_DX11
+
 		// 頂点バッファ生成
 		D3D11_BUFFER_DESC bd{};
 		ZeroMemory(&bd, sizeof(bd));
@@ -197,11 +205,15 @@ void Task013DPolygon::Update()
 		sd.pSysMem = g_VertexArray;
 
 		Task01Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_VertexBuffer);
+
+#endif // USE_DX11
 	}
 }
 
 void Task013DPolygon::Draw()
 {
+#ifdef USE_DX11
+
 	/// 入力レイアウト設定
 	Task01Renderer::GetDeviceContext()->IASetInputLayout(m_VertexLayout);
 
@@ -236,4 +248,6 @@ void Task013DPolygon::Draw()
 
 	/// ポリゴン描画
 	Task01Renderer::GetDeviceContext()->Draw(VERTEX_NUM, 0);
+
+#endif // USE_DX11
 }
