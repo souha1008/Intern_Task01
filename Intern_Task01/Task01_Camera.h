@@ -14,7 +14,12 @@ public:
     void Draw();
 
 private:
+
+#ifdef USE_DX11
+
     D3DXVECTOR3 m_Position;
     D3DXVECTOR3 m_Target;
+
+#endif // USE_DX11
 };
 

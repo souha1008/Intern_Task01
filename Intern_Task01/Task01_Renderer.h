@@ -5,6 +5,9 @@
 // Copyright (C)  Silicon Studio Co., Ltd. All rights reserved.
 //==============================================================
 
+#ifdef USE_DX11
+
+
 /// í∏ì_èÓïÒ
 struct VERTEX_3D
 {
@@ -37,6 +40,7 @@ struct LIGHT
 	D3DXCOLOR	Ambient;
 };
 
+#endif // USE_DX11
 
 
 class Task01Renderer
@@ -47,6 +51,8 @@ public:
 	static void Uninit();
 	static void Begin();
 	static void End();
+
+#ifdef USE_DX11
 
 	static void SetDepthEnable(bool Enable);
 	static void SetWorldViewProjection2D();
@@ -64,8 +70,19 @@ public:
 	static void CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName);
 	static void CreatePixelShader(ID3D11PixelShader** PixelShader, const char* FileName);
 
-private:
+#endif // USE_DX11
 
+#ifdef USE_DX12
+
+	static void EnableDebugLayer();
+
+#endif // USE_DX12
+
+
+private:
+#ifdef USE_DX11
+
+	/// DX11
 	static D3D_FEATURE_LEVEL       m_FeatureLevel;
 
 	static ID3D11Device* m_Device;
@@ -83,5 +100,22 @@ private:
 
 	static ID3D11DepthStencilState* m_DepthStateEnable;
 	static ID3D11DepthStencilState* m_DepthStateDisable;
+
+#endif // USE_DX11
+
+
+#ifdef USE_DX12
+
+	static ID3D12Device* m_D12Device;
+	static IDXGIFactory6* m_DXGIFactry;
+	static IDXGISwapChain4* m_SwapChain4;
+	static ID3D12CommandAllocator* m_CmdAllocator;
+	static ID3D12GraphicsCommandList* m_GCmdList;
+	static ID3D12CommandQueue* m_CmdQueue;
+	static ID3D12DescriptorHeap* m_DescHeap;
+
+	static ID3D12Fence* m_Fence;
+
+#endif // USE_DX12
 
 };

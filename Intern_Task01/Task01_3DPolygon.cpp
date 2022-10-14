@@ -13,13 +13,16 @@
 
 
 /// マクロ定義
-#define	VALUE_ROTATE	(D3DX_PI * 0.006f)			/// 回転量
 
 #define	SIZE_X			(10.0f)					/// 地面のサイズ(X方向)
 #define SIZE_Y			(10.0f)					/// 地面のサイズ(Y方向)
 #define	SIZE_Z			(10.0f)					/// 地面のサイズ(Z方向)
 
 #define VERTEX_NUM	36							/// 頂点数
+
+
+#ifdef USE_DX11
+#define	VALUE_ROTATE	(D3DX_PI * 0.006f)			/// 回転量
 
 /// 頂点配列
 static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
@@ -73,8 +76,12 @@ static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
 
 };
 
+#endif // USE_DX11
+
 void Task013DPolygon::Init()
 {
+#ifdef USE_DX11
+
 	for (int i = 0; i < VERTEX_NUM; i++)
 	{
 		g_VertexArray[i].Diffuse.r = 0.0f;
@@ -82,7 +89,6 @@ void Task013DPolygon::Init()
 		g_VertexArray[i].Diffuse.b = 1.0f;
 	}
 
-#ifdef USE_DX11
 
 	// 頂点バッファ生成
 	D3D11_BUFFER_DESC bd{};
@@ -102,11 +108,12 @@ void Task013DPolygon::Init()
 
 	Task01Renderer::CreatePixelShader(&m_PixelShader, "unlitColorPS.cso");
 
-#endif // USE_DX11
-
 	m_Position = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 	m_Rotation = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 	m_Scale = D3DXVECTOR3(0.1f, 0.1f, 0.1f);
+
+#endif // USE_DX11
+
 }
 
 void Task013DPolygon::Uninit()
@@ -123,6 +130,8 @@ void Task013DPolygon::Uninit()
 
 void Task013DPolygon::Update()
 {
+#ifdef USE_DX11
+
 	/// 回転
 	{
 		if (Task01_Input::GetKeyPress('W')) /// Wキーで上
@@ -143,6 +152,8 @@ void Task013DPolygon::Update()
 		}
 	}
 
+#endif // USE_DX11
+	
 	/// 赤色を変更
 	if (m_NowColor == RED)
 	{
@@ -182,6 +193,7 @@ void Task013DPolygon::Update()
 		}
 	}
 
+#ifdef USE_DX11
 	/// 色変更
 	{
 		for (int i = 0; i < VERTEX_NUM; i++)
@@ -190,7 +202,6 @@ void Task013DPolygon::Update()
 			g_VertexArray[i].Diffuse.g = m_green;
 			g_VertexArray[i].Diffuse.b = m_blue;
 		}
-#ifdef USE_DX11
 
 		// 頂点バッファ生成
 		D3D11_BUFFER_DESC bd{};
@@ -206,8 +217,9 @@ void Task013DPolygon::Update()
 
 		Task01Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_VertexBuffer);
 
-#endif // USE_DX11
 	}
+#endif // USE_DX11
+
 }
 
 void Task013DPolygon::Draw()

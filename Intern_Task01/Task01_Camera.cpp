@@ -11,8 +11,12 @@
 
 void Task01Camera::Init()
 {
+#ifdef USE_DX11
+
     m_Position = D3DXVECTOR3(0.0f, 2.0f, -5.0f);
     m_Target = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+
+#endif // USE_DX11
 }
 
 void Task01Camera::Uninit()

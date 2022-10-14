@@ -24,6 +24,9 @@ public:
     void Draw();
 
 private:
+
+#ifdef USE_DX11
+
     D3DXVECTOR3 m_Position = {0.0f, 0.0f, 0.0f};    /// à íu
     D3DXVECTOR3 m_Rotation = { 0.0f, 0.0f, 0.0f };  /// âÒì]
     D3DXVECTOR3 m_Scale = { 0.0f, 0.0f, 0.0f };     /// ägëÂó¶
@@ -33,6 +36,8 @@ private:
     ID3D11VertexShader* m_VertexShader = NULL;
     ID3D11PixelShader* m_PixelShader = NULL;
     ID3D11InputLayout* m_VertexLayout = NULL;
+
+#endif // USE_DX11
 
     float m_red = 0.0f;    /// ê‘
     float m_green = 0.0f;  /// óŒ
