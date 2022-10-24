@@ -24,6 +24,8 @@
 #pragma warning(push)
 #pragma warning(disable:4005)
 
+
+
 #ifdef USE_DX11
 
 #include <d3d11.h>
@@ -36,6 +38,8 @@
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
+#include <DirectXMath.h>
+#include <D3Dcompiler.h>
 
 #endif // USE_DX12
 
@@ -59,6 +63,7 @@
 
 #pragma comment (lib, "d3d12.lib")
 #pragma comment (lib, "dxgi.lib")
+#pragma comment (lib, "d3dcompiler.lib")
 
 #endif // USE_DX12
 

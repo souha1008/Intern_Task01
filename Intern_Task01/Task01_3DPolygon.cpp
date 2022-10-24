@@ -11,6 +11,8 @@
 #include "Task01_3DPolygon.h"
 #include "Task01_Input.h"
 
+// using namespace DirectX;
+
 
 /// マクロ定義
 
@@ -78,6 +80,18 @@ static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
 
 #endif // USE_DX11
 
+#ifdef USE_DX12
+
+DirectX::XMFLOAT3 vertex[3];
+
+#endif // USE_DX12
+
+D3D12_VIEWPORT g_Viewport = {};
+D3D12_RECT g_ScissorRect = {};
+
+HRESULT result;
+
+
 void Task013DPolygon::Init()
 {
 #ifdef USE_DX11
@@ -113,6 +127,238 @@ void Task013DPolygon::Init()
 	m_Scale = D3DXVECTOR3(0.1f, 0.1f, 0.1f);
 
 #endif // USE_DX11
+
+#ifdef USE_DX12
+
+	vertex[0].x = -1.0f;
+	vertex[0].y = -1.0f;
+	vertex[0].z = 0.0f;
+
+	vertex[1].x = -1.0f;
+	vertex[1].y = 1.0f;
+	vertex[1].z = 0.0f;
+
+	vertex[2].x = 1.0f;
+	vertex[2].y = -1.0f;
+	vertex[2].z = 0.0f;
+
+	/// 頂点バッファーの生成
+	D3D12_HEAP_PROPERTIES heapprop = {};
+	heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
+	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+	D3D12_RESOURCE_DESC reDesc = {};
+	reDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	reDesc.Width = sizeof(vertex); /// 頂点サイズ
+	reDesc.Height = 1;
+	reDesc.DepthOrArraySize = 1;
+	reDesc.MipLevels = 1;
+	reDesc.Format = DXGI_FORMAT_UNKNOWN;
+	reDesc.SampleDesc.Count = 1;
+	reDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	reDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	result = Task01Renderer::GetDevice12()->CreateCommittedResource(
+		&heapprop,
+		D3D12_HEAP_FLAG_NONE,
+		&reDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_VertexBuffer)
+	);
+
+	/// マップ
+	result = m_VertexBuffer->Map(0, nullptr, (void**)&m_vertexMap);
+	std::copy(std::begin(vertex), std::end(vertex), m_vertexMap);
+	m_VertexBuffer->Unmap(0, nullptr);
+
+	/// バッファービュー生成
+	m_vbview.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress(); /// バッファーの仮想アドレス
+	m_vbview.SizeInBytes = sizeof(vertex); /// 全バイト数
+	m_vbview.StrideInBytes = sizeof(vertex[0]); /// 1頂点あたりのバイト数
+
+	/// インデックスバッファー
+	unsigned short indices[] = { 0, 1, 2, 2, 1, 3 };
+	reDesc.Width = sizeof(indices);
+	result = Task01Renderer::GetDevice12()->CreateCommittedResource(
+		&heapprop,
+		D3D12_HEAP_FLAG_NONE,
+		&reDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_IndexBuffer)
+	);
+
+	unsigned short* mappendIdx = nullptr;
+	m_IndexBuffer->Map(0, nullptr, (void**)&mappendIdx);
+	std::copy(std::begin(indices), std::end(indices), mappendIdx);
+	m_IndexBuffer->Unmap(0, nullptr);
+
+	/// インデックスバッファービュー作成
+	m_ibview.BufferLocation = m_IndexBuffer->GetGPUVirtualAddress();
+	m_ibview.Format = DXGI_FORMAT_R16_UINT;
+	m_ibview.SizeInBytes = sizeof(indices);
+
+
+	/// 頂点シェーダーコンパイル
+	result = D3DCompileFromFile(
+		L"VertexShader.hlsl",	/// シェーダー名
+		nullptr,	/// defineなし
+		D3D_COMPILE_STANDARD_FILE_INCLUDE, /// インクルードはデフォルト
+		"BasicVS", "vs_5_0", /// 関数はインクルードするシェーダー内のもの
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, /// デバッグ用および最適化なし
+		0,
+		&m_vsBlob, &m_errorBlob
+	);
+
+	if (FAILED(result))
+	{
+		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
+		{
+			::OutputDebugStringA("ファイルが見当たりません");
+		}
+		else
+		{
+			std::string errstr;
+			errstr.resize(m_errorBlob->GetBufferSize());
+
+			std::copy_n((char*)m_errorBlob->GetBufferPointer(), m_errorBlob->GetBufferSize(), errstr.begin());
+			errstr += "\n";
+
+			::OutputDebugStringA(errstr.c_str());
+		}
+		exit(1);
+	}
+
+	/// ピクセルシェーダーコンパイル
+	result = D3DCompileFromFile(
+		L"PixelShader.hlsl",	/// シェーダー名
+		nullptr,	/// defineなし
+		D3D_COMPILE_STANDARD_FILE_INCLUDE, /// インクルードはデフォルト
+		"BasicPS", "ps_5_0", /// 関数はインクルードするシェーダー内のもの
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, /// デバッグ用および最適化なし
+		0,
+		&m_psBlob, &m_errorBlob
+	);
+	if (FAILED(result))
+	{
+		if (result == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
+		{
+			::OutputDebugStringA("ファイルが見当たりません");
+		}
+		else
+		{
+			std::string errstr;
+			errstr.resize(m_errorBlob->GetBufferSize());
+
+			std::copy_n((char*)m_errorBlob->GetBufferPointer(), m_errorBlob->GetBufferSize(), errstr.begin());
+			errstr += "\n";
+
+			::OutputDebugStringA(errstr.c_str());
+		}
+		exit(1);
+	}
+
+	/// インプットレイアウト設定
+	D3D12_INPUT_ELEMENT_DESC InputDesc[] =
+	{
+		{
+			"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
+			D3D12_APPEND_ALIGNED_ELEMENT,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+		},
+	};
+
+	/// グラフィックパイプラインステート作成
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC graPipeDesc = {};
+	graPipeDesc.pRootSignature = nullptr;
+	graPipeDesc.VS.pShaderBytecode = m_vsBlob->GetBufferPointer();
+	graPipeDesc.VS.BytecodeLength = m_vsBlob->GetBufferSize();
+	graPipeDesc.PS.pShaderBytecode = m_psBlob->GetBufferPointer();
+	graPipeDesc.PS.BytecodeLength = m_psBlob->GetBufferSize();
+
+	/// デフォルトのサンプルマスクを表す定数
+	graPipeDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	/// まだアンチエイリアスは使わない
+	graPipeDesc.RasterizerState.MultisampleEnable = false;
+	graPipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; /// カリングしない
+	graPipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; /// 中身を塗りつぶす
+	graPipeDesc.RasterizerState.DepthClipEnable = true; /// 深度方向のクリッピングは有効に
+
+
+	/// ブレンドステートの設定
+	graPipeDesc.BlendState.AlphaToCoverageEnable = false;
+	graPipeDesc.BlendState.IndependentBlendEnable = false;
+
+	D3D12_RENDER_TARGET_BLEND_DESC rtbdesc = {};
+	rtbdesc.BlendEnable = false;
+	rtbdesc.LogicOpEnable = false;
+	rtbdesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	graPipeDesc.BlendState.RenderTarget[0] = rtbdesc;
+
+	/// レイアウト先頭アドレス
+	graPipeDesc.InputLayout.pInputElementDescs = InputDesc;
+	/// レイアウト配列の要素数
+	graPipeDesc.InputLayout.NumElements = _countof(InputDesc);
+
+	graPipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+
+	/// プリミティブトポロジ設定
+	graPipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+	/// レンダーターゲット設定
+	graPipeDesc.NumRenderTargets = 1;
+	graPipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	// AA設定
+	graPipeDesc.SampleDesc.Count = 1;
+	graPipeDesc.SampleDesc.Quality = 0;
+
+	/// ルートシグネチャ作成
+	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
+	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+	result = D3D12SerializeRootSignature(
+		&rsDesc,	/// ルートシグネチャ
+		D3D_ROOT_SIGNATURE_VERSION_1_0,		/// ルートシグネチャバージョン
+		&m_RootSigBlob,		/// シェーダーを作ったときと同じ
+		&m_errorBlob		/// エラー処理も同じ
+	);
+
+	/// ルートシグネチャオブジェクトの作成
+	result = Task01Renderer::GetDevice12()->CreateRootSignature(
+		0,
+		m_RootSigBlob->GetBufferPointer(),
+		m_RootSigBlob->GetBufferSize(),
+		IID_PPV_ARGS(&m_RootSignature)
+	);
+	/// 解放
+	m_RootSigBlob->Release();
+	graPipeDesc.pRootSignature = m_RootSignature;
+
+	/// グラフィックパイプライン作成
+	result = Task01Renderer::GetDevice12()->CreateGraphicsPipelineState(&graPipeDesc, IID_PPV_ARGS(&m_PipelineState));
+
+	/// ビューポート設定
+	g_Viewport.Width = SCREEN_WIDTH;
+	g_Viewport.Height = SCREEN_HEIGHT;
+	g_Viewport.TopLeftX = 0;
+	g_Viewport.TopLeftY = 0;
+	g_Viewport.MaxDepth = 1.0f;
+	g_Viewport.MinDepth = 0.0f;
+
+
+	/// シザー矩形
+	g_ScissorRect.top = 0;	/// 切り抜き上座標
+	g_ScissorRect.left = 0;	/// 切り抜き左座標
+	g_ScissorRect.right = g_ScissorRect.left + SCREEN_WIDTH;	/// 切り抜き右座標
+	g_ScissorRect.bottom = g_ScissorRect.top + SCREEN_HEIGHT;	/// 切り抜き上座標
+
+
+#endif // USE_DX12
 
 }
 
@@ -262,4 +508,29 @@ void Task013DPolygon::Draw()
 	Task01Renderer::GetDeviceContext()->Draw(VERTEX_NUM, 0);
 
 #endif // USE_DX11
+
+#ifdef USE_DX12
+
+	/// パイプラインセット
+	Task01Renderer::GetGraphicsCommandList()->SetPipelineState(m_PipelineState);
+
+	/// ルートシグネチャセット
+	Task01Renderer::GetGraphicsCommandList()->SetGraphicsRootSignature(m_RootSignature);
+
+	/// ビューポートセット
+	Task01Renderer::GetGraphicsCommandList()->RSSetViewports(1, &g_Viewport);
+	Task01Renderer::GetGraphicsCommandList()->RSSetScissorRects(1, &g_ScissorRect);
+
+	Task01Renderer::GetGraphicsCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	/// 頂点バッファーセット
+	Task01Renderer::GetGraphicsCommandList()->IASetVertexBuffers(0, 1, &m_vbview);
+
+	/// 描画命令
+	//Task01Renderer::GetGraphicsCommandList()->DrawInstanced(3, 1, 0, 0);	/// 頂点数、インスタンス数、頂点データのオフセット、インスタンスのオフセット
+	Task01Renderer::GetGraphicsCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
+
+#endif // USE_DX12
+
+
 }

@@ -39,6 +39,24 @@ private:
 
 #endif // USE_DX11
 
+#ifdef USE_DX12
+
+    ID3D12Resource* m_VertexBuffer = nullptr;
+    ID3D12Resource* m_IndexBuffer = nullptr;
+    DirectX::XMFLOAT3* m_vertexMap = nullptr;
+    ID3DBlob* m_vsBlob = nullptr;
+    ID3DBlob* m_psBlob = nullptr;
+    ID3DBlob* m_errorBlob = nullptr;
+    ID3DBlob* m_RootSigBlob = nullptr;
+    ID3D12PipelineState* m_PipelineState = nullptr;
+    ID3D12RootSignature* m_RootSignature = nullptr;
+
+    D3D12_VERTEX_BUFFER_VIEW m_vbview = {};
+    D3D12_INDEX_BUFFER_VIEW m_ibview = {};
+
+#endif // USE_DX12
+
+
     float m_red = 0.0f;    /// ê‘
     float m_green = 0.0f;  /// óŒ
     float m_blue = 1.0f;   /// ê¬

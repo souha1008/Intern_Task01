@@ -75,6 +75,8 @@ public:
 #ifdef USE_DX12
 
 	static void EnableDebugLayer();
+	static ID3D12Device* GetDevice12() { return m_D12Device; }
+	static ID3D12GraphicsCommandList* GetGraphicsCommandList() { return m_GCmdList; }
 
 #endif // USE_DX12
 
@@ -115,6 +117,9 @@ private:
 	static ID3D12DescriptorHeap* m_DescHeap;
 
 	static ID3D12Fence* m_Fence;
+	static UINT64 m_FenceVal;
+
+	static D3D12_RESOURCE_BARRIER m_Barrier;
 
 #endif // USE_DX12
 
