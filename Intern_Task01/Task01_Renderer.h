@@ -77,8 +77,27 @@ public:
 	static void EnableDebugLayer();
 	static ID3D12Device* GetDevice12() { return m_D12Device; }
 	static ID3D12GraphicsCommandList* GetGraphicsCommandList() { return m_GCmdList; }
+	static void SetPipelineState(ID3D12PipelineState* set) { m_PipelineState = set; }
+	static ID3D12PipelineState* GetPipelineState() { return m_PipelineState; }
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+	static void OpenGLSet2D();		/// 2Dモード
+	static void OpenGLSet3D();		/// 3Dモード
+
+		//カメラ座標
+	static	float	CameraPositionX;
+	static	float	CameraPositionY;
+	static	float	CameraPositionZ;
+	//カメラ注視点
+	static	float	CameraAtPositionX;
+	static	float	CameraAtPositionY;
+	static	float	CameraAtPositionZ;
+
+#endif // USE_OPENGL
+
 
 
 private:
@@ -115,6 +134,7 @@ private:
 	static ID3D12GraphicsCommandList* m_GCmdList;
 	static ID3D12CommandQueue* m_CmdQueue;
 	static ID3D12DescriptorHeap* m_DescHeap;
+	static ID3D12PipelineState* m_PipelineState;
 
 	static ID3D12Fence* m_Fence;
 	static UINT64 m_FenceVal;
@@ -122,5 +142,14 @@ private:
 	static D3D12_RESOURCE_BARRIER m_Barrier;
 
 #endif // USE_DX12
+
+
+#ifdef USE_OPENGL
+
+	static HGLRC m_GLRC;
+	static HDC	m_DC;
+
+#endif // USE_OPENGL
+
 
 };

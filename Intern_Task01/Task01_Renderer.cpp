@@ -40,12 +40,31 @@ ID3D12CommandQueue* Task01Renderer::m_CmdQueue = NULL;
 ID3D12DescriptorHeap* Task01Renderer::m_DescHeap = NULL;
 ID3D12Fence* Task01Renderer::m_Fence = NULL;
 UINT64 Task01Renderer::m_FenceVal = NULL;
-D3D12_RESOURCE_BARRIER Task01Renderer::m_Barrier;
+ID3D12PipelineState* Task01Renderer::m_PipelineState = NULL;
+D3D12_RESOURCE_BARRIER Task01Renderer::m_Barrier = {};
 
 /// グローバル宣言
 DXGI_SWAP_CHAIN_DESC g_swcDesc = {};
+std::vector<ID3D12Resource*> g_BackBuffers;
+
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+HGLRC Task01Renderer::m_GLRC;
+HDC	Task01Renderer::m_DC;
+
+float	Task01Renderer::CameraPositionX;
+float	Task01Renderer::CameraPositionY;
+float	Task01Renderer::CameraPositionZ;
+
+float	Task01Renderer::CameraAtPositionX;
+float	Task01Renderer::CameraAtPositionY;
+float	Task01Renderer::CameraAtPositionZ;
+
+#endif // USE_OPENGL
+
 
 
 float g_red, g_green, g_blue;
@@ -250,22 +269,20 @@ void Task01Renderer::Init()
 	EnableDebugLayer();
 
 #endif // _DEBUG
-
-
-	auto g_Result = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_D12Device));
-
-	g_Result = CreateDXGIFactory1(IID_PPV_ARGS(&m_DXGIFactry));
-
-	std::vector<IDXGIAdapter*> adapters;
-
+	D3D_FEATURE_LEVEL levels[] = {
+	D3D_FEATURE_LEVEL_12_1,
+	D3D_FEATURE_LEVEL_12_0,
+	D3D_FEATURE_LEVEL_11_1,
+	D3D_FEATURE_LEVEL_11_0,
+	};
+	auto Result = CreateDXGIFactory1(IID_PPV_ARGS(&m_DXGIFactry));
 	// 特定の名前を持つアダプターオブジェクトが入る
+	std::vector<IDXGIAdapter*> adapters;
 	IDXGIAdapter* tmpAdapter = nullptr;
-
 	for (int i = 0; m_DXGIFactry->EnumAdapters(i, &tmpAdapter) != DXGI_ERROR_NOT_FOUND; ++i)
 	{
 		adapters.push_back(tmpAdapter);
 	}
-
 	// Descriptionメンバー変数から、アダプターの名前を見つける
 	for (auto adpt : adapters)
 	{
@@ -282,28 +299,29 @@ void Task01Renderer::Init()
 		}
 	}
 
+	D3D_FEATURE_LEVEL FeatureLevel;
+	for (auto l : levels)
+	{
+		if (D3D12CreateDevice(tmpAdapter, l, IID_PPV_ARGS(&m_D12Device)) == S_OK)
+		{
+			FeatureLevel = l;
+			break;
+		}
+	}
+
 	/// コマンドアロケータ生成
-	g_Result = m_D12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CmdAllocator));
+	Result = m_D12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CmdAllocator));
 
 	/// コマンドリスト生成
-	g_Result = m_D12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CmdAllocator, nullptr, IID_PPV_ARGS(&m_GCmdList));
+	Result = m_D12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_CmdAllocator, nullptr, IID_PPV_ARGS(&m_GCmdList));
 
 	///  COMMAND_QUEUEの設定
 	D3D12_COMMAND_QUEUE_DESC qDesc = {};
-
-	/// タイムアウト無し
-	qDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-
-	/// アダプターを一つしか使わないときは０
-	qDesc.NodeMask = 0;
-
-	/// プライオリティは特に指定なし
-	qDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-
-	/// コマンドリストと合わせる
-	qDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-	g_Result = m_D12Device->CreateCommandQueue(&qDesc, IID_PPV_ARGS(&m_CmdQueue));
+	qDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;	/// タイムアウト無し
+	qDesc.NodeMask = 0;	/// アダプターを一つしか使わないときは０
+	qDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;	/// プライオリティは特に指定なし
+	qDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;	/// コマンドリストと合わせる
+	Result = m_D12Device->CreateCommandQueue(&qDesc, IID_PPV_ARGS(&m_CmdQueue));
 
 
 	/// SwapChain作成
@@ -317,21 +335,13 @@ void Task01Renderer::Init()
 	swapDesc.SampleDesc.Quality = 0;
 	swapDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER;
 	swapDesc.BufferCount = 2;
-
-	/// バックバッファーは伸び縮み可能
-	swapDesc.Scaling = DXGI_SCALING_STRETCH;
-
-	/// フリップ後は速やかに破棄
-	swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-
-	/// 特に指定なし
-	swapDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-
-	/// ウィンドウ　フルスクリーン切替可能
-	swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	swapDesc.Scaling = DXGI_SCALING_STRETCH;		/// バックバッファーは伸び縮み可能
+	swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;	/// フリップ後は速やかに破棄
+	swapDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;	/// 特に指定なし
+	swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;	/// ウィンドウ　フルスクリーン切替可能
 
 	/// SwapChain生成
-	g_Result = m_DXGIFactry->CreateSwapChainForHwnd(
+	Result = m_DXGIFactry->CreateSwapChainForHwnd(
 		m_CmdQueue,
 		GetWindow(),
 		&swapDesc,
@@ -350,31 +360,83 @@ void Task01Renderer::Init()
 	hd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	
 	/// ディスクリプタヒープ生成
-	g_Result = m_D12Device->CreateDescriptorHeap(&hd, IID_PPV_ARGS(&m_DescHeap));
+	Result = m_D12Device->CreateDescriptorHeap(&hd, IID_PPV_ARGS(&m_DescHeap));
 
 
 	/// ディスクリプタとスワップチェーンを紐づけ
-	g_Result = m_SwapChain4->GetDesc(&g_swcDesc);
-	std::vector<ID3D12Resource*> backBuffers(g_swcDesc.BufferCount);
-	
+	Result = m_SwapChain4->GetDesc(&g_swcDesc);
+	static std::vector<ID3D12Resource*> backBuffers(g_swcDesc.BufferCount);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE deschandle = m_DescHeap->GetCPUDescriptorHandleForHeapStart();
 	for (size_t index = 0; index < g_swcDesc.BufferCount; ++index)
 	{
-		g_Result = m_SwapChain4->GetBuffer(index, IID_PPV_ARGS(&backBuffers[index])); /// BackBuffersの中にスワップチェーン上のバックバッファーを取得
+		Result = m_SwapChain4->GetBuffer(static_cast<UINT>(index), IID_PPV_ARGS(&backBuffers[index])); /// BackBuffersの中にスワップチェーン上のバックバッファーを取得
 		m_D12Device->CreateRenderTargetView(backBuffers[index], nullptr, deschandle);
-		deschandle.ptr += index * m_D12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		deschandle.ptr += m_D12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
+	g_BackBuffers = backBuffers;
 
 	//g_Result = m_CmdAllocator->Reset();
 
 	/// フェンス作成
-	g_Result = m_D12Device->CreateFence(m_FenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+	Result = m_D12Device->CreateFence(m_FenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 
 
 
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+	// ピクセルフォーマット
+	PIXELFORMATDESCRIPTOR pfd =
+	{
+		sizeof(PIXELFORMATDESCRIPTOR),
+		1,
+		PFD_DRAW_TO_WINDOW |
+		PFD_SUPPORT_OPENGL |
+		PFD_DOUBLEBUFFER,
+		PFD_TYPE_RGBA,
+		24,
+		0, 0, 0, 0, 0, 0,
+		0,
+		0,
+		0,
+		0, 0, 0, 0,
+		32,
+		0,
+		0,
+		PFD_MAIN_PLANE,
+		0,
+		0, 0, 0
+	};
+
+	m_DC = GetDC(GetWindow());
+
+	int pixelFormat = ChoosePixelFormat(m_DC, &pfd);
+	SetPixelFormat(m_DC, pixelFormat, &pfd);
+
+	/// GLコンテキスト作成
+	m_GLRC = wglCreateContext(m_DC);
+	wglMakeCurrent(m_DC, m_GLRC);
+
+	/// OpenGL描画設定
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
+
+	/// 変数初期化
+	//カメラ座標
+	CameraPositionX = 0.0f;
+	CameraPositionY = 5.0f;
+	CameraPositionZ = 10.0f;
+	//カメラ注視点
+	CameraAtPositionX = 0.0f;
+	CameraAtPositionY = 0.0f;
+	CameraAtPositionZ = 0.0f;
+
+#endif // USE_OPENGL
 
 
 	// Color初期化
@@ -413,9 +475,20 @@ void Task01Renderer::Uninit()
 	m_DXGIFactry->Release();
 	m_GCmdList->Release();
 	m_SwapChain4->Release();
+	m_PipelineState->Release();
+	m_Fence->Release();
 	m_D12Device->Release();
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+	wglMakeCurrent(NULL, NULL);
+	ReleaseDC(GetWindow(), m_DC);
+	wglDeleteContext(m_GLRC);
+
+#endif // USE_OPENGL
+
 
 }
 
@@ -437,15 +510,9 @@ void Task01Renderer::Begin()
 	auto bbIdx = m_SwapChain4->GetCurrentBackBufferIndex();
 
 	/// リソースバリア生成
-	DXGI_SWAP_CHAIN_DESC swcDesc = {};
-
-	auto result = m_SwapChain4->GetDesc(&g_swcDesc);
-
-	std::vector<ID3D12Resource*> backBuffers(g_swcDesc.BufferCount);
-
 	m_Barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	m_Barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	m_Barrier.Transition.pResource = backBuffers[bbIdx];
+	m_Barrier.Transition.pResource = g_BackBuffers[bbIdx];
 	m_Barrier.Transition.Subresource = 0;
 	m_Barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	m_Barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -457,7 +524,7 @@ void Task01Renderer::Begin()
 	/// レンダーターゲットを指定
 	auto rtvH = m_DescHeap->GetCPUDescriptorHandleForHeapStart();
 	rtvH.ptr += bbIdx * m_D12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_GCmdList->OMSetRenderTargets(1, &rtvH, true, nullptr);	/// コマンドリストに命令を貯めていく
+	m_GCmdList->OMSetRenderTargets(1, &rtvH, false, nullptr);	/// コマンドリストに命令を貯めていく
 
 	float clearColor[4] = { g_red, g_green, g_blue, 1.0f };
 
@@ -467,6 +534,16 @@ void Task01Renderer::Begin()
 
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+	// 画面クリア
+	glClearColor(0.0f, 0.5f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+#endif // USE_OPENGL
+
+
 }
 
 
@@ -480,6 +557,7 @@ void Task01Renderer::End()
 #endif // USE_DX11
 
 #ifdef USE_DX12
+	static D3D12_RESOURCE_BARRIER Barrier;
 
 	/// 前後だけ入れ替える
 	m_Barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -514,11 +592,19 @@ void Task01Renderer::End()
 	/// キューのクリア
 	m_CmdAllocator->Reset();
 	/// 再びコマンドリストを貯める準備
-	m_GCmdList->Reset(m_CmdAllocator, nullptr);
+	m_GCmdList->Reset(m_CmdAllocator, m_PipelineState);
 
 	m_SwapChain4->Present(1, 0);
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+	// フロントバッファ・バックバッファ入れ替え
+	SwapBuffers(m_DC);
+
+#endif // USE_OPENGL
+
 }
 
 void Update()
@@ -693,3 +779,51 @@ void Task01Renderer::EnableDebugLayer()
 }
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+void Task01Renderer::OpenGLSet2D()
+{
+	// 2D用マトリクス設定
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 1);
+}
+
+void Task01Renderer::OpenGLSet3D()
+{
+	//画角の設定
+#define		VIEW_ANGLE		(45.0f)
+//近面クリップ距離
+#define		VIEW_NEAR_Z		(1.0f)
+//遠面クリップ距離
+#define		VIEW_FAR_Z		(5000.0f)
+
+	//ビューポートの設定 ウィンドウサイズいっぱい
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	//アスペクト比  横÷縦
+	double	aspect = (double)SCREEN_WIDTH /
+		(double)SCREEN_HEIGHT;
+	//プロジェクション行列の変更
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(VIEW_ANGLE, aspect,
+		VIEW_NEAR_Z, VIEW_FAR_Z);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	//カメラ行列作成
+	gluLookAt(
+		CameraPositionX,//カメラ座標
+		CameraPositionY,
+		CameraPositionZ,
+		CameraAtPositionX,//カメラ注視点
+		CameraAtPositionY,
+		CameraAtPositionZ,
+		0.0f, 1.0f, 0.0f	//上方向ベクトル
+	);
+}
+
+#endif // USE_OPENGL

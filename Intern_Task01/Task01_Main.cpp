@@ -10,7 +10,20 @@
 
 /// キャプション定義
 const char* g_ClassName = "AppClass";
-const char* g_WindowName = "Silicon Studio";
+#ifdef USE_DX11
+
+const char* g_WindowName = "Silicon Studio_DX11";
+
+#endif // USE_DX11
+#ifdef USE_DX12
+const char* g_WindowName = "Silicon Studio_DX12";
+
+#endif // USE_DX11
+#ifdef USE_OPENGL
+const char* g_WindowName = "Silicon Studio_OpenGL";
+
+#endif // USE_DX11
+
 
 
 /// プロトタイプ宣言
@@ -46,16 +59,16 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	RegisterClassEx(&wcex);
 
+	RECT wrc = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 
-
-	g_Window = CreateWindowEx(0,
+	g_Window = CreateWindow(
 		g_ClassName,
 		g_WindowName,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		(SCREEN_WIDTH + GetSystemMetrics(SM_CXDLGFRAME) * 2),
-		(SCREEN_HEIGHT + GetSystemMetrics(SM_CXDLGFRAME) * 2 + GetSystemMetrics(SM_CYCAPTION)),
+		(wrc.right - wrc.left),
+		(wrc.bottom - wrc.top),
 		NULL,
 		NULL,
 		hInstance,

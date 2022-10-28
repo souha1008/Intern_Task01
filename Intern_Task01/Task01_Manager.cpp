@@ -8,17 +8,20 @@
 #ifdef USE_DX11
 
 Task01Camera* p_Camera = NULL;
-Task013DPolygon* p_3DPolygon = NULL;
 
 #endif // USE_DX11
 
 #ifdef USE_DX12
 
-Task013DPolygon* p_3DPolygon = NULL;
-
 #endif // USE_DX12
 
+#ifdef USE_OPENGL
 
+
+#endif // USE_OPENGL
+
+/// どのAPIでも使うオブジェクト
+Task013DPolygon* p_3DPolygon = NULL;
 
 void Task01Manager::Init()
 {
@@ -58,6 +61,12 @@ void Task01Manager::Update()
 void Task01Manager::Draw()
 {
     Task01Renderer::Begin();
+
+#ifdef USE_OPENGL
+
+    Task01Renderer::OpenGLSet3D();
+
+#endif // USE_OPENGL
 
     p_3DPolygon->Draw();
     //p_Camera->Draw();

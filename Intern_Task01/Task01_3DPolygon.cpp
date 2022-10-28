@@ -11,8 +11,11 @@
 #include "Task01_3DPolygon.h"
 #include "Task01_Input.h"
 
-// using namespace DirectX;
+#ifdef USE_OPENGL
 
+#include "Task01_Vector.h"
+
+#endif // USE_OPENGL
 
 /// マクロ定義
 
@@ -20,7 +23,7 @@
 #define SIZE_Y			(10.0f)					/// 地面のサイズ(Y方向)
 #define	SIZE_Z			(10.0f)					/// 地面のサイズ(Z方向)
 
-#define VERTEX_NUM	36							/// 頂点数
+#define VERTEX_NUM	4							/// 頂点数
 
 
 #ifdef USE_DX11
@@ -82,12 +85,24 @@ static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
 
 #ifdef USE_DX12
 
-DirectX::XMFLOAT3 vertex[3];
+DirectX::XMFLOAT3 vertex[] = 
+{
+	{-0.5f,-0.5f, 0.0f} ,	//左下
+	{-0.5f, 0.5f, 0.0f} ,	//左上
+	{ 0.5f,-0.5f, 0.0f} ,	//右下
+	{ 0.5f, 0.5f, 0.0f} ,	//右上
+};
+D3D12_VIEWPORT g_Viewport = {};
+D3D12_RECT g_ScissorRect = {};
 
 #endif // USE_DX12
 
-D3D12_VIEWPORT g_Viewport = {};
-D3D12_RECT g_ScissorRect = {};
+#ifdef USE_OPENGL
+
+VECTOR3D g_CameraPos(0.0f, 5.0f, 10.0f);
+
+#endif // USE_OPENGL
+
 
 HRESULT result;
 
@@ -129,18 +144,6 @@ void Task013DPolygon::Init()
 #endif // USE_DX11
 
 #ifdef USE_DX12
-
-	vertex[0].x = -1.0f;
-	vertex[0].y = -1.0f;
-	vertex[0].z = 0.0f;
-
-	vertex[1].x = -1.0f;
-	vertex[1].y = 1.0f;
-	vertex[1].z = 0.0f;
-
-	vertex[2].x = 1.0f;
-	vertex[2].y = -1.0f;
-	vertex[2].z = 0.0f;
 
 	/// 頂点バッファーの生成
 	D3D12_HEAP_PROPERTIES heapprop = {};
@@ -299,6 +302,18 @@ void Task013DPolygon::Init()
 
 	graPipeDesc.BlendState.RenderTarget[0] = rtbdesc;
 
+	/// 残り
+	graPipeDesc.RasterizerState.FrontCounterClockwise = false;
+	graPipeDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+	graPipeDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+	graPipeDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+	graPipeDesc.RasterizerState.AntialiasedLineEnable = false;
+	graPipeDesc.RasterizerState.ForcedSampleCount = 0;
+	graPipeDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+	graPipeDesc.DepthStencilState.DepthEnable = false;
+	graPipeDesc.DepthStencilState.StencilEnable = false;
+
 	/// レイアウト先頭アドレス
 	graPipeDesc.InputLayout.pInputElementDescs = InputDesc;
 	/// レイアウト配列の要素数
@@ -341,6 +356,7 @@ void Task013DPolygon::Init()
 
 	/// グラフィックパイプライン作成
 	result = Task01Renderer::GetDevice12()->CreateGraphicsPipelineState(&graPipeDesc, IID_PPV_ARGS(&m_PipelineState));
+	Task01Renderer::SetPipelineState(m_PipelineState);
 
 	/// ビューポート設定
 	g_Viewport.Width = SCREEN_WIDTH;
@@ -360,6 +376,12 @@ void Task013DPolygon::Init()
 
 #endif // USE_DX12
 
+#ifdef USE_OPENGL
+
+
+
+#endif // USE_OPENGL
+
 }
 
 void Task013DPolygon::Uninit()
@@ -372,6 +394,17 @@ void Task013DPolygon::Uninit()
 	m_PixelShader->Release();
 
 #endif // USE_DX11
+
+#ifdef USE_DX12
+
+	m_VertexBuffer->Release();
+	m_IndexBuffer->Release();
+	m_vsBlob->Release();
+	m_psBlob->Release();
+	m_RootSignature->Release();
+
+#endif // USE_DX12
+
 }
 
 void Task013DPolygon::Update()
@@ -399,6 +432,20 @@ void Task013DPolygon::Update()
 	}
 
 #endif // USE_DX11
+
+#ifdef USE_OPENGL
+
+	if (Task01_Input::GetKeyPress('W')) /// Wキーで上
+	{
+		g_CameraPos.y += 0.5f;
+	}
+	if (Task01_Input::GetKeyPress('S')) /// Wキーで上
+	{
+		g_CameraPos.y += -0.5f;
+	}
+
+#endif // USE_OPENGL
+
 	
 	/// 赤色を変更
 	if (m_NowColor == RED)
@@ -514,23 +561,74 @@ void Task013DPolygon::Draw()
 	/// パイプラインセット
 	Task01Renderer::GetGraphicsCommandList()->SetPipelineState(m_PipelineState);
 
-	/// ルートシグネチャセット
-	Task01Renderer::GetGraphicsCommandList()->SetGraphicsRootSignature(m_RootSignature);
-
 	/// ビューポートセット
 	Task01Renderer::GetGraphicsCommandList()->RSSetViewports(1, &g_Viewport);
 	Task01Renderer::GetGraphicsCommandList()->RSSetScissorRects(1, &g_ScissorRect);
 
+	/// ルートシグネチャセット
+	Task01Renderer::GetGraphicsCommandList()->SetGraphicsRootSignature(m_RootSignature);
+
+	/// プリミティブトポロジ設定
 	Task01Renderer::GetGraphicsCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	/// 頂点バッファーセット
 	Task01Renderer::GetGraphicsCommandList()->IASetVertexBuffers(0, 1, &m_vbview);
 
+	/// インデックスバッファーセット
+	Task01Renderer::GetGraphicsCommandList()->IASetIndexBuffer(&m_ibview);
+
 	/// 描画命令
-	//Task01Renderer::GetGraphicsCommandList()->DrawInstanced(3, 1, 0, 0);	/// 頂点数、インスタンス数、頂点データのオフセット、インスタンスのオフセット
+	//Task01Renderer::GetGraphicsCommandList()->DrawInstanced(VERTEX_NUM, 1, 0, 0);	/// 頂点数、インスタンス数、頂点データのオフセット、インスタンスのオフセット
 	Task01Renderer::GetGraphicsCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+
+	// ライティング無効
+	glDisable(GL_LIGHTING);
+	{
+		//モデルのワールド行列を作成
+		glTranslatef(0.0f, 0.0f, 0.0f);
+
+		glBegin(GL_TRIANGLE_STRIP);//ポリゴンの表示の仕方 STRIP
+		{
+			glPushMatrix();
+
+			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+			glTexCoord2f(1, 0);				//		テクスチャ座標
+			glVertex3f(0.9f, 0, -0.9f);		//		表示画面座標
+
+			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+			glTexCoord2f(0, 0);
+			glVertex3f(-0.9f, 0, -0.9f);
+
+			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+			glTexCoord2f(1, 1);
+			glVertex3f(0.9f, 0, 0.9f);
+
+			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+			glTexCoord2f(0, 1);
+			glVertex3f(-0.9f, 0, 0.9f);
+
+			glPopMatrix();
+		}
+		glEnd();
+	}
+	// ライティング有効
+	glEnable(GL_LIGHTING);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+
+#endif // USE_OPENGL
 
 
 }

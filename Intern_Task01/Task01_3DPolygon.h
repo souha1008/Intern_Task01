@@ -27,7 +27,7 @@ private:
 
 #ifdef USE_DX11
 
-    D3DXVECTOR3 m_Position = {0.0f, 0.0f, 0.0f};    /// à íu
+    D3DXVECTOR3 m_Position = { 0.0f, 0.0f, 0.0f };    /// à íu
     D3DXVECTOR3 m_Rotation = { 0.0f, 0.0f, 0.0f };  /// âÒì]
     D3DXVECTOR3 m_Scale = { 0.0f, 0.0f, 0.0f };     /// ägëÂó¶
 
@@ -55,6 +55,13 @@ private:
     D3D12_INDEX_BUFFER_VIEW m_ibview = {};
 
 #endif // USE_DX12
+
+#ifdef USE_OPENGL
+
+    float m_PosX, m_PosY;
+
+#endif // USE_OPENGL
+
 
 
     float m_red = 0.0f;    /// ê‘
