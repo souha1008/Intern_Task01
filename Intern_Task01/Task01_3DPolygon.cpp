@@ -485,8 +485,8 @@ void Task013DPolygon::Init()
 	);
 	/// 解放
 	m_RootSigBlob->Release();
-	graPipeDesc.pRootSignature = m_RootSignature;
 
+	graPipeDesc.pRootSignature = m_RootSignature;
 	/// グラフィックパイプライン作成
 	result = Task01Renderer::GetDevice12()->CreateGraphicsPipelineState(&graPipeDesc, IID_PPV_ARGS(&m_PipelineState));
 	//Task01Renderer::SetPipelineState(m_PipelineState);
