@@ -85,15 +85,17 @@ static VERTEX_3D g_VertexArray[VERTEX_NUM] = {
 
 #ifdef USE_DX12
 
-DirectX::XMFLOAT3 vertex[] = 
+VERTEX vertexs[] = 
 {
-	{-0.5f,-0.5f, 0.0f} ,	//左下
-	{-0.5f, 0.5f, 0.0f} ,	//左上
-	{ 0.5f,-0.5f, 0.0f} ,	//右下
-	{ 0.5f, 0.5f, 0.0f} ,	//右上
+	{{-0.1f,-0.1f, 0.0f}, {0.0f, 1.0f}} ,	//左下
+	{{-0.1f, 0.1f, 0.0f}, {0.0f, 0.0f}} ,	//左上
+	{{ 0.1f,-0.1f, 0.0f}, {1.0f, 1.0f}},	//右下
+	{{ 0.1f, 0.1f, 0.0f}, {1.0f, 0.0f}},	//右上
 };
 D3D12_VIEWPORT g_Viewport = {};
 D3D12_RECT g_ScissorRect = {};
+
+std::vector<TEXRGBA> g_TextureDate(256 * 256);
 
 #endif // USE_DX12
 
@@ -153,7 +155,7 @@ void Task013DPolygon::Init()
 
 	D3D12_RESOURCE_DESC reDesc = {};
 	reDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	reDesc.Width = sizeof(vertex); /// 頂点サイズ
+	reDesc.Width = sizeof(vertexs); /// 頂点サイズ
 	reDesc.Height = 1;
 	reDesc.DepthOrArraySize = 1;
 	reDesc.MipLevels = 1;
@@ -173,13 +175,13 @@ void Task013DPolygon::Init()
 
 	/// マップ
 	result = m_VertexBuffer->Map(0, nullptr, (void**)&m_vertexMap);
-	std::copy(std::begin(vertex), std::end(vertex), m_vertexMap);
+	std::copy(std::begin(vertexs), std::end(vertexs), m_vertexMap);
 	m_VertexBuffer->Unmap(0, nullptr);
 
 	/// バッファービュー生成
 	m_vbview.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress(); /// バッファーの仮想アドレス
-	m_vbview.SizeInBytes = sizeof(vertex); /// 全バイト数
-	m_vbview.StrideInBytes = sizeof(vertex[0]); /// 1頂点あたりのバイト数
+	m_vbview.SizeInBytes = sizeof(vertexs); /// 全バイト数
+	m_vbview.StrideInBytes = sizeof(vertexs[0]); /// 1頂点あたりのバイト数
 
 	/// インデックスバッファー
 	unsigned short indices[] = { 0, 1, 2, 2, 1, 3 };
@@ -263,19 +265,105 @@ void Task013DPolygon::Init()
 		exit(1);
 	}
 
+	/// テクスチャバッファー作成
+	D3D12_HEAP_PROPERTIES texHeapProp;
+	texHeapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
+	texHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+	texHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	texHeapProp.CreationNodeMask = 0;
+	texHeapProp.VisibleNodeMask = 0;
+
+	reDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	reDesc.Width = 256;
+	reDesc.Height = 256;
+	reDesc.DepthOrArraySize = 1;	// 2D配列でもないので１
+	reDesc.SampleDesc.Count = 1;
+	reDesc.SampleDesc.Quality = 0;
+	reDesc.MipLevels = 1;
+	reDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	reDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	reDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	result = Task01Renderer::GetDevice12()->CreateCommittedResource(
+		&texHeapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&reDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		nullptr,
+		IID_PPV_ARGS(&m_TextureBuffer)
+	);
+
+	result = m_TextureBuffer->WriteToSubresource(
+		0,
+		nullptr,
+		g_TextureDate.data(),
+		sizeof(TEXRGBA) * 256,
+		sizeof(TEXRGBA) * g_TextureDate.size()
+	);
+
+	/// 定数バッファ作成
+	DirectX::XMMATRIX matrix = DirectX::XMMatrixIdentity();
+
+	Task01Renderer::GetDevice12()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer((sizeof(matrix) + 0xff) & ~0xff),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_ConstBuffer)
+	);
+
+	DirectX::XMMATRIX MapMatrix;
+	result = m_ConstBuffer->Map(0, nullptr, (void**)&MapMatrix);
+	MapMatrix = matrix;
+
+	/// シェーダーリソースビュー作成
+	///ディスクリプタヒープ
+	D3D12_DESCRIPTOR_HEAP_DESC dhd = {};
+	dhd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	dhd.NodeMask = 0;
+	dhd.NumDescriptors = 2;
+	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	result = Task01Renderer::GetDevice12()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_BasicDescHeap));
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvd = {};
+	srvd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvd.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvd.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvd.Texture2D.MipLevels = 1;
+	auto basicHeapHandle = m_BasicDescHeap->GetCPUDescriptorHandleForHeapStart(); // ディスクリプタの戦闘ハンドルを取得
+	Task01Renderer::GetDevice12()->CreateShaderResourceView(
+		m_TextureBuffer,
+		&srvd,
+		basicHeapHandle
+	);
+	
+	basicHeapHandle.ptr += Task01Renderer::GetDevice12()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = m_ConstBuffer->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = m_ConstBuffer->GetDesc().Width;
+	Task01Renderer::GetDevice12()->CreateConstantBufferView(&cbvDesc, basicHeapHandle);
+
 	/// インプットレイアウト設定
 	D3D12_INPUT_ELEMENT_DESC InputDesc[] =
 	{
+		/// 座標情報
 		{
 			"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0,
 			D3D12_APPEND_ALIGNED_ELEMENT,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+		},
+
+		/// uv座標
+		{
+			"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,
+			0, D3D12_APPEND_ALIGNED_ELEMENT,
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
 		},
 	};
 
 	/// グラフィックパイプラインステート作成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graPipeDesc = {};
-	graPipeDesc.pRootSignature = nullptr;
 	graPipeDesc.VS.pShaderBytecode = m_vsBlob->GetBufferPointer();
 	graPipeDesc.VS.BytecodeLength = m_vsBlob->GetBufferSize();
 	graPipeDesc.PS.pShaderBytecode = m_psBlob->GetBufferPointer();
@@ -332,12 +420,57 @@ void Task013DPolygon::Init()
 	graPipeDesc.SampleDesc.Count = 1;
 	graPipeDesc.SampleDesc.Quality = 0;
 
-	/// ルートシグネチャ作成
-	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
-	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	// ディスクリプタレンジ
+	D3D12_DESCRIPTOR_RANGE dr[2] = {};
+	// テクスチャ用レジスター0番
+	dr[0].NumDescriptors = 1;
+	dr[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	dr[0].BaseShaderRegister = 0;
+	dr[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	// 定数用レジスター1番
+	dr[1].NumDescriptors = 1;
+	dr[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	dr[1].BaseShaderRegister = 0;
+	dr[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	/// ルートパラメータ作成
+	D3D12_ROOT_PARAMETER rpram[2] = {};
+	/// ピクセルシェーダー
+	rpram[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rpram[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rpram[0].DescriptorTable.pDescriptorRanges = &dr[0];
+	rpram[0].DescriptorTable.NumDescriptorRanges = 1;
+
+	/// 頂点シェーダー
+	rpram[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rpram[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rpram[1].DescriptorTable.pDescriptorRanges = &dr[1];
+	rpram[1].DescriptorTable.NumDescriptorRanges = 1;
+
+	/// スタティックサンプラー
+	D3D12_STATIC_SAMPLER_DESC ssd = {};
+	ssd.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	ssd.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	ssd.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	ssd.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	ssd.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	ssd.MaxLOD = D3D12_FLOAT32_MAX;
+	ssd.MinLOD = 0.0f;
+	ssd.ShaderVisibility = D3D12_SHADER_VISIBILITY_MESH;
+	ssd.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+
+	/// ルートシグネチャデスク
+	D3D12_ROOT_SIGNATURE_DESC rsd = {};
+	rsd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rsd.pParameters = rpram;
+	rsd.NumParameters = 2;
+	rsd.pStaticSamplers = &ssd;
+	rsd.NumStaticSamplers = 1;
+	
 
 	result = D3D12SerializeRootSignature(
-		&rsDesc,	/// ルートシグネチャ
+		&rsd,	/// ルートシグネチャ
 		D3D_ROOT_SIGNATURE_VERSION_1_0,		/// ルートシグネチャバージョン
 		&m_RootSigBlob,		/// シェーダーを作ったときと同じ
 		&m_errorBlob		/// エラー処理も同じ
@@ -356,7 +489,7 @@ void Task013DPolygon::Init()
 
 	/// グラフィックパイプライン作成
 	result = Task01Renderer::GetDevice12()->CreateGraphicsPipelineState(&graPipeDesc, IID_PPV_ARGS(&m_PipelineState));
-	Task01Renderer::SetPipelineState(m_PipelineState);
+	//Task01Renderer::SetPipelineState(m_PipelineState);
 
 	/// ビューポート設定
 	g_Viewport.Width = SCREEN_WIDTH;
@@ -373,6 +506,15 @@ void Task013DPolygon::Init()
 	g_ScissorRect.right = g_ScissorRect.left + SCREEN_WIDTH;	/// 切り抜き右座標
 	g_ScissorRect.bottom = g_ScissorRect.top + SCREEN_HEIGHT;	/// 切り抜き上座標
 
+
+	/// テクスチャデータ生成
+	for (auto& rgba : g_TextureDate)
+	{
+		rgba.R = rand() & 256;
+		rgba.G = rand() & 256;
+		rgba.B = rand() & 256;
+		rgba.A = rand() & 256;
+	}
 
 #endif // USE_DX12
 
@@ -442,6 +584,16 @@ void Task013DPolygon::Update()
 	if (Task01_Input::GetKeyPress('S')) /// Wキーで上
 	{
 		g_CameraPos.y += -0.5f;
+	}
+
+	if (Task01_Input::GetKeyPress(VK_LEFT))
+	{
+		m_Rot -= 1.0f;
+	}
+
+	if (Task01_Input::GetKeyPress(VK_RIGHT))
+	{
+		m_Rot += 1.0f;
 	}
 
 #endif // USE_OPENGL
@@ -577,6 +729,13 @@ void Task013DPolygon::Draw()
 	/// インデックスバッファーセット
 	Task01Renderer::GetGraphicsCommandList()->IASetIndexBuffer(&m_ibview);
 
+	/// ディスクリプターヒープセット
+	Task01Renderer::GetGraphicsCommandList()->SetDescriptorHeaps(1, &m_BasicDescHeap);
+
+	/// ルートパラメーターセット
+	Task01Renderer::GetGraphicsCommandList()->SetGraphicsRootDescriptorTable(0, m_BasicDescHeap->GetGPUDescriptorHandleForHeapStart());
+
+
 	/// 描画命令
 	//Task01Renderer::GetGraphicsCommandList()->DrawInstanced(VERTEX_NUM, 1, 0, 0);	/// 頂点数、インスタンス数、頂点データのオフセット、インスタンスのオフセット
 	Task01Renderer::GetGraphicsCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
@@ -595,27 +754,135 @@ void Task013DPolygon::Draw()
 	{
 		//モデルのワールド行列を作成
 		glTranslatef(0.0f, 0.0f, 0.0f);
+		// 回転
+		glRotatef(m_Rot, 0, 1, 0);
 
 		glBegin(GL_TRIANGLE_STRIP);//ポリゴンの表示の仕方 STRIP
 		{
+			// 上
 			glPushMatrix();
+			{
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+				glTexCoord2f(1, 0);				//		テクスチャ座標
+				glVertex3f(2.0f, 2.0f, -2.0f);		//		表示画面座標
 
-			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
-			glTexCoord2f(1, 0);				//		テクスチャ座標
-			glVertex3f(0.9f, 0, -0.9f);		//		表示画面座標
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+				glTexCoord2f(0, 0);
+				glVertex3f(-2.0f, 2.0f, -2.0f);
 
-			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
-			glTexCoord2f(0, 0);
-			glVertex3f(-0.9f, 0, -0.9f);
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+				glTexCoord2f(1, 1);
+				glVertex3f(2.0f, 2.0f, 2.0f);
 
-			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
-			glTexCoord2f(1, 1);
-			glVertex3f(0.9f, 0, 0.9f);
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+				glTexCoord2f(0, 1);
+				glVertex3f(-2.0f, 2.0f, 2.0f);
+			}
+			glPopMatrix();
 
-			glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
-			glTexCoord2f(0, 1);
-			glVertex3f(-0.9f, 0, 0.9f);
+			// 下
+			glPushMatrix();
+			{
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+				glTexCoord2f(1, 0);				//		テクスチャ座標
+				glVertex3f(-2.0f, -2.0f, 2.0f);		//		表示画面座標
 
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+				glTexCoord2f(0, 0);
+				glVertex3f(2.0f, -2.0f, 2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+				glTexCoord2f(1, 1);
+				glVertex3f(-2.0f, -2.0f, -2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+				glTexCoord2f(0, 1);
+				glVertex3f(2.0f, -2.0f, -2.0f);
+			}
+			glPopMatrix();
+
+			// 前
+			glPushMatrix();
+			{
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+				glTexCoord2f(1, 0);				//		テクスチャ座標
+				glVertex3f(2.0f, 2.0f, 2.0f);		//		表示画面座標
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+				glTexCoord2f(0, 0);
+				glVertex3f(-2.0f, 2.0f, 2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+				glTexCoord2f(1, 1);
+				glVertex3f(2.0f, -2.0f, 2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+				glTexCoord2f(0, 1);
+				glVertex3f(-2.0f, -2.0f, 2.0f);
+			}
+			glPopMatrix();
+
+			// 後ろ
+			glPushMatrix();
+			{
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+				glTexCoord2f(1, 0);				//		テクスチャ座標
+				glVertex3f(-2.0f, 2.0f, -2.0f);		//		表示画面座標
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+				glTexCoord2f(0, 0);
+				glVertex3f(2.0f, 2.0f,-2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+				glTexCoord2f(1, 1);
+				glVertex3f(-2.0f, -2.0f,-2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+				glTexCoord2f(0, 1);
+				glVertex3f(2.0f, -2.0f,-2.0f);
+			}
+			glPopMatrix();
+
+			// 右
+			glPushMatrix();
+			{
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+				glTexCoord2f(1, 0);				//		テクスチャ座標
+				glVertex3f(2.0f, 2.0f, -2.0f);		//		表示画面座標
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+				glTexCoord2f(0, 0);
+				glVertex3f(2.0f, 2.0f, 2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+				glTexCoord2f(1, 1);
+				glVertex3f(2.0f, -2.0f, -2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+				glTexCoord2f(0, 1);
+				glVertex3f(2.0f, -2.0f, 2.0f);
+			}
+			glPopMatrix();
+
+			// 左
+			glPushMatrix();
+			{
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点０　頂点色
+				glTexCoord2f(1, 0);				//		テクスチャ座標
+				glVertex3f(-2.0f, 2.0f, 2.0f);		//		表示画面座標
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点１
+				glTexCoord2f(0, 0);
+				glVertex3f(-2.0f, 2.0f,-2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点２
+				glTexCoord2f(1, 1);
+				glVertex3f(-2.0f, -2.0f, 2.0f);
+
+				glColor4f(1.0, 1.0, 1.0, 1.0f);//頂点３
+				glTexCoord2f(0, 1);
+				glVertex3f(-2.0f, -2.0f,-2.0f);
+			}
 			glPopMatrix();
 		}
 		glEnd();

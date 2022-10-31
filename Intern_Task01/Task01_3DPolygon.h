@@ -14,6 +14,18 @@ enum NowColor
     BLUE
 };
 
+#ifdef USE_DX12
+typedef struct
+{
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT2 uv;
+}VERTEX;
+#endif // USE_DX12
+
+typedef struct
+{
+    unsigned char R, G, B, A;
+}TEXRGBA;
 
 class Task013DPolygon
 {
@@ -43,22 +55,29 @@ private:
 
     ID3D12Resource* m_VertexBuffer = nullptr;
     ID3D12Resource* m_IndexBuffer = nullptr;
-    DirectX::XMFLOAT3* m_vertexMap = nullptr;
+    ID3D12Resource* m_TextureBuffer = nullptr;
+    ID3D12Resource* m_ConstBuffer = nullptr;
     ID3DBlob* m_vsBlob = nullptr;
     ID3DBlob* m_psBlob = nullptr;
     ID3DBlob* m_errorBlob = nullptr;
     ID3DBlob* m_RootSigBlob = nullptr;
     ID3D12PipelineState* m_PipelineState = nullptr;
     ID3D12RootSignature* m_RootSignature = nullptr;
+    ID3D12DescriptorHeap* m_BasicDescHeap = nullptr;
+    
+    VERTEX* m_vertexMap = nullptr;
 
     D3D12_VERTEX_BUFFER_VIEW m_vbview = {};
     D3D12_INDEX_BUFFER_VIEW m_ibview = {};
+
+    
 
 #endif // USE_DX12
 
 #ifdef USE_OPENGL
 
     float m_PosX, m_PosY;
+    float m_Rot;
 
 #endif // USE_OPENGL
 

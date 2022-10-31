@@ -10,9 +10,9 @@
 /// DirectX11を使う場合は「USE_DX11」
 /// OpenGLを使う場合は「USE_OPENGL」
 
-//#define USE_DX12
+#define USE_DX12
 //#define USE_DX11
-#define USE_OPENGL
+//#define USE_OPENGL
 
 #include <windows.h>
 #include <tchar.h>
@@ -26,6 +26,7 @@
 #ifdef USE_DX12
 
 #include <d3d12.h>
+#include <d3dx12.h>
 #include <dxgi1_6.h>
 #include <DirectXMath.h>
 #include <D3Dcompiler.h>

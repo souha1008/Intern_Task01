@@ -62,12 +62,6 @@ void Task01Manager::Draw()
 {
     Task01Renderer::Begin();
 
-#ifdef USE_OPENGL
-
-    Task01Renderer::OpenGLSet3D();
-
-#endif // USE_OPENGL
-
     p_3DPolygon->Draw();
     //p_Camera->Draw();
 

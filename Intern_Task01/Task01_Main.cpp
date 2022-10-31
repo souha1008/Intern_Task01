@@ -75,7 +75,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		NULL);
 
 
-
+	/// 使用オブジェクトの初期化
 	Task01Manager::Init();
 
 
